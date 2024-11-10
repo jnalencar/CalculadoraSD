@@ -1,6 +1,7 @@
 import socket
 import threading
 import json
+from concurrent.futures import ThreadPoolExecutor
 
 # Lista de servidores de cálculo
 # Lista de servidores de cálculo com portas de status e cálculo
@@ -60,19 +61,20 @@ def main():
     proxy_socket.listen(5)
     print(f"Proxy reverso escutando em {proxy_host}:{proxy_port}")
 
-    try:
-        while True:
-            # Aceita uma nova conexão do cliente
-            client_socket, addr = proxy_socket.accept()
-            print(f"Conexão aceita de {addr}")
+    # Criação do pool de threads
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        try:
+            while True:
+                # Aceita uma nova conexão do cliente
+                client_socket, addr = proxy_socket.accept()
+                print(f"Conexão aceita de {addr}")
 
-            # Cria uma nova thread para lidar com a requisição do cliente
-            client_thread = threading.Thread(target=handle_client, args=(client_socket,))
-            client_thread.start()
-    except KeyboardInterrupt:
-        print("\nProxy reverso desligado.")
-    finally:
-        proxy_socket.close()
+                # Submete a tarefa ao pool de threads
+                executor.submit(handle_client, client_socket)
+        except KeyboardInterrupt:
+            print("\nProxy reverso desligado.")
+        finally:
+            proxy_socket.close()
 
 if __name__ == "__main__":
     main()
