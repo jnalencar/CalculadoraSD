@@ -3,17 +3,31 @@ import threading
 import psutil
 import time
 
+active_connections = 0
+connection_lock = threading.Lock()
+
 def handle_status(client_socket):
+    global active_connections
+    with connection_lock:
+        active_connections += 1
     try:
         data = client_socket.recv(1024).decode()
         if data == 'LOAD':
             # Obtém a carga atual da CPU
             cpu_load = psutil.cpu_percent(interval=1)
+            with connection_lock:
+                connections = active_connections
+            print(f"Carga de CPU: {cpu_load}% | Conexões ativas: {connections}")
             client_socket.sendall(str(cpu_load).encode())
     finally:
         client_socket.close()
+        with connection_lock:
+            active_connections -= 1
 
 def handle_calculation(client_socket):
+    global active_connections
+    with connection_lock:
+        active_connections += 1
     try:
         operation = client_socket.recv(1024).decode()
         # Processa a operação matemática
@@ -23,6 +37,8 @@ def handle_calculation(client_socket):
         client_socket.sendall(f"Erro: {e}".encode())
     finally:
         client_socket.close()
+        with connection_lock:
+            active_connections -= 1
 
 def start_status_server(host, port):
     status_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
