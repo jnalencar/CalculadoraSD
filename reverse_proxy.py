@@ -24,27 +24,24 @@ def get_server_load(server):
 
 def handle_client(client_socket):
     try:
-        while True:
-            # Recebe a operação do cliente
-            operation = client_socket.recv(1024).decode()
-            if not operation:
-                break  # Cliente fechou a conexão
+        # Recebe a operação do cliente
+        operation = client_socket.recv(1024).decode()
 
             # Seleciona o servidor com menor carga
-            server_loads = [(server, get_server_load(server)) for server in servers]
-            selected_server = min(server_loads, key=lambda x: x[1])[0]
+        server_loads = [(server, get_server_load(server)) for server in servers]
+        selected_server = min(server_loads, key=lambda x: x[1])[0]
 
-            # Conecta ao servidor na porta de cálculo
-            server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            server_socket.connect(selected_server['calc'])  # Conecta à porta de cálculo
-            server_socket.sendall(operation.encode())
+            # Encaminha a operação para o servidor selecionado
+        server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_socket.connect(selected_server)
+        server_socket.sendall(operation.encode())
 
             # Recebe o resultado do servidor
-            result = server_socket.recv(1024).decode()
-            server_socket.close()
+        result = server_socket.recv(1024).decode()
+        server_socket.close()
 
-            # Envia o resultado de volta para o cliente
-            client_socket.sendall(result.encode())
+        # Envia o resultado de volta para o cliente
+        client_socket.sendall(result.encode())
     except Exception as e:
         print(f"Erro ao processar a requisição: {e}")
     finally:
